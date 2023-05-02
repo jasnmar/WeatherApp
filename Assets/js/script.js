@@ -104,27 +104,7 @@ function updateCurrentWeather(currentWeatherObj) {
         ldiv.innerHTML = wObject.description+" : "+wObject.value+" "+wObject.units;
         return ldiv;
     }
-    // const dispClouds = document.createElement('div');
-    // dispClouds.innerHTML = clouds
-    // currnetConditionsSection.appendChild(dispClouds)
-    // const dispdewPoint = document.createElement('div');
-    // dispdewPoint.innerHTML = dewPoint;
-    // currnetConditionsSection.appendChild(dispdewPoint)
-    // const dispfeelsLike = document.createElement('div');
-    // dispfeelsLike.innerHTML = feelsLike
-    // currnetConditionsSection.appendChild(dispfeelsLike)
-    // const disphumidity = document.createElement('div');
-    // disphumidity.innerHTML = humidity;
-    // currnetConditionsSection.appendChild(disphumidity)
-    // const dispbarometricPressure = document.createElement('div');
-    // dispbarometricPressure.innerHTML = barometricPressure;
-    // currnetConditionsSection.appendChild(dispbarometricPressure)
-    // const disptemp = document.createElement('div');
-    // disptemp.innerHTML = temp;
-    // currnetConditionsSection.appendChild(disptemp)
-    // const dispwindSpeed = document.createElement('div');
-    // dispwindSpeed.innerHTML = windSpeed;
-    // currnetConditionsSection.appendChild(dispwindSpeed)
+
     const dispweatherIcon = document.createElement('div');
     const dispWetherImage = document.createElement('img');
     dispWetherImage.setAttribute("src", iconPath);
@@ -154,7 +134,6 @@ function searchArea(parentDiv) {
     searchForm.appendChild(searchButton);
     parentDiv.appendChild(searchForm);
 }
-const key = "623b76358baf32d74317202b7bbe02e8";
 
 function searchAction(e) {
     e.preventDefault();
