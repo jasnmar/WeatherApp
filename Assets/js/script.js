@@ -31,7 +31,7 @@ function setupPage() {
     searchArea(searchDivC);
     bodyRow.appendChild(searchSection);
 
-    // TODO: Setup the City List
+    // Set up the City Buttons
     const cityListR = document.createElement('div');
     cityListR.id = "cityListR";
     cityListR.classList.add("row");
@@ -41,22 +41,22 @@ function setupPage() {
     searchSection.appendChild(cityList);
     setupCityButtons(cityList);
 
-    // TODO: Finish formatting this
+    // Current Conditions
     const currnetConditionsSection = document.createElement('div')
     currnetConditionsSection.id = "currentConditions";
     currnetConditionsSection.classList.add('container', "col");
     currnetConditionsSection.innerHTML = "";
     bodyRow.appendChild(currnetConditionsSection);
 
-    // TODO: Setup the 5 day forcast
+    // TODO: Format this better
     fiveDay(bodyContainer);
 }
 
 function fiveDay(parentDiv) {
     const fiveDay = document.createElement('div');
     fiveDay.id = "fiveDay";
-    fiveDay.classList.add("row");
-    fiveDay.innerHTML = "as;ddfhasjdf;laskljdf "
+    fiveDay.classList.add("row", "my-3");
+    fiveDay.innerHTML = ""
     parentDiv.appendChild(fiveDay);
 }
 
@@ -67,7 +67,7 @@ function setupCityButtons(parentDiv) {
         for(i=0;i<locationList.length;i++) {
             const cityBtnDiv = document.createElement('div')
             cityBtnDiv.id = "cityBtnDiv"+i;
-            cityBtnDiv.classList.add("row");
+            cityBtnDiv.classList.add("row", "mx-0", "my-1");
             parentDiv.appendChild(cityBtnDiv);
             cityBtnEl = createCityButton(locationList[i], cityBtnDiv);
             cityBtnEl.id = "cityBtn"+i;
@@ -76,7 +76,7 @@ function setupCityButtons(parentDiv) {
     function createCityButton(location, parent) {
         
         const cityBtn = document.createElement('button');
-        cityBtn.classList.add("btn", "btn-secondary");
+        cityBtn.classList.add("btn", "btn-secondary", "btn-sm");
         cityBtn.innerHTML = location.locationName;
         cityBtn.setAttribute("data-lon",location.longitude);
         cityBtn.setAttribute("data-lat", location.lattitude);
@@ -88,6 +88,9 @@ function setupCityButtons(parentDiv) {
     }
     console.log("Setting up City List");
 }
+
+// Event listender that works on the City buttons under the search
+// (saved searches)
 function cityButtonListener(e) {
     e.preventDefault();
     console.log(e.target);
@@ -99,11 +102,18 @@ function cityButtonListener(e) {
     getWeatherData(lat, lon);
 
 }
-
+// Updates the current weather portion of the page, based on 
+// a current weather object being passed in.
 function updateCurrentWeather(currentWeatherObj) {
+    // Current weather object is expected to be an object
+    // That represents the current weather section as described
+    // In https://openweathermap.org/api/one-call-3
 
     const currnetConditionsSection = document.getElementById("currentConditions");
 
+    // I used this to deconstruct the weather object and add 
+    // a description, a name, and some units to the raw values
+    // that are in the object that get passed in.
     const clouds = {
         description: "Conditions",
         value: currentWeatherObj.weather[0].description,
@@ -146,9 +156,17 @@ function updateCurrentWeather(currentWeatherObj) {
         name: "windSpeed",
         units: "MPH"
     }
-
+    // Gets the icon from the weather object, looks it up and inserts it
+    // as an image.
     const weatherIcon = currentWeatherObj.weather[0].icon;
     const iconPath = "https://openweathermap.org/img/wn/"+weatherIcon+".png";
+    const dispweatherIcon = document.createElement('div');
+    const dispWeatherImage = document.createElement('img');
+    dispWeatherImage.setAttribute("src", iconPath);
+    dispweatherIcon.appendChild(dispWeatherImage);
+    currnetConditionsSection.appendChild(dispweatherIcon);
+
+
     let weatherData = [clouds, dewPoint, feelsLike, humidity, barometricPressure, temp, windSpeed];
 
     for(i=0;i<weatherData.length;i++){
@@ -159,17 +177,13 @@ function updateCurrentWeather(currentWeatherObj) {
     function createWeatherDiv(wObject) {
         const ldiv = document.createElement('div');
         ldiv.id = wObject.name;
-        ldiv.classList.add("h3");
+        ldiv.classList.add("h4");
         ldiv.innerHTML = wObject.description+" : "+wObject.value+" "+wObject.units;
         return ldiv;
     }
 
-    const dispweatherIcon = document.createElement('div');
-    const dispWetherImage = document.createElement('img');
-    dispWetherImage.setAttribute("src", iconPath);
-    dispweatherIcon.appendChild(dispWetherImage);
-    const cloudySection = document.getElementById("clouds");
-    cloudySection.appendChild(dispweatherIcon)
+
+    
 
     
 }
@@ -192,12 +206,15 @@ function searchArea(parentDiv) {
     const searchButton = document.createElement('input');
     searchButton.setAttribute("type", "submit");
     searchButton.setAttribute("value", "Submit");
+    searchButton.classList.add("btn-primary");
     searchButton.addEventListener("click",searchAction)
     searchButton.id = "searchSubmitButton";
     searchForm.appendChild(searchButton);
     parentDiv.appendChild(searchForm);
 }
 
+// This runs when the submit button is clicked (or when someone
+// presses enter on the input button)
 function searchAction(e) {
     e.preventDefault();
     console.log("Searching...");
@@ -234,6 +251,9 @@ function searchAction(e) {
     }
 }
 
+
+// Given a lat and long this retrieves the weather data, then updates
+// The current weather, as well as the 5 day forcast.
 function getWeatherData(lat, lon) {
     let getWeatherUrl = "https://api.openweathermap.org/data/3.0/onecall?lat="+lat+"&lon="+lon+"&units=imperial"+"&appid="+key;
     fetch(getWeatherUrl)
@@ -247,6 +267,8 @@ function getWeatherData(lat, lon) {
 
     })
 }
+
+// Updates the 5 day forcast, based on an 8 day forcast being passed in
 function update5Day(forcast) {
     const fiveDayDiv = document.getElementById("fiveDay");
     fiveDayDiv.innerHTML = "";
@@ -254,27 +276,39 @@ function update5Day(forcast) {
     // forcast comes in as an array of 8 elements
     // we only want the first five
     for(i=0;i<5;i++) {
+
+        // Set up the div for a single day
+        const dayDiv = document.createElement('div');
+        dayDiv.id = "fiveDay"+i;
+        dayDiv.classList.add("col", "bg-secondary", "text-white", "mx-1");
+
+        // Add the date
         const date = dateConverter(forcast[i].dt);
+        const dateDiv = document.createElement('h2');
+        dateDiv.innerHTML = date;
+        dayDiv.appendChild(dateDiv);
+
         const temp = forcast[i].temp.day;
         const wind = forcast[i].wind_speed;
         const humidity = forcast[i].humidity;
         const weatherIcon = forcast[i].weather[0].icon;
         const iconPath = "https://openweathermap.org/img/wn/"+weatherIcon+".png";
-        
 
 
         
-        const dispweatherIcon = document.createElement('div');
-        const dispWetherImage = document.createElement('img');
-        //dispWetherImage.setAttribute("src", iconPath);
+        const dispWeatherIcon = document.createElement('div');
+        dispWeatherIcon.id = "5dWIcon";
+        const dispWeatherImage = document.createElement('img');
+        dispWeatherIcon.appendChild(dispWeatherImage);
+        console.log(dispWeatherImage);
+        dispWeatherImage.setAttribute("src", iconPath);
+        dayDiv.appendChild(dispWeatherIcon);
 
 
-        const dayDiv = document.createElement('div');
-        dayDiv.id = "fiveDay"+i;
-        dayDiv.classList.add("col", "bg-secondary", "text-white");
-        const dateDiv = document.createElement('h2');
-        dateDiv.innerHTML = date;
-        dayDiv.appendChild(dateDiv);
+        
+
+
+
         const tempDiv = document.createElement("h5");
         tempDiv.innerHTML = "Temperature: "+ temp;
         dayDiv.appendChild(tempDiv);
@@ -285,7 +319,7 @@ function update5Day(forcast) {
         humDiv.innerHTML = "Humidity: " + humidity;
         dayDiv.appendChild(humDiv);
  
-        //dayDiv.appendChild(dispweatherIcon);
+        
         fiveDayDiv.appendChild(dayDiv);
 
     }
@@ -325,12 +359,18 @@ function currentConditionsHeader(location) {
     const today = dayjs().format('MMMM D YYYY [at] h:m a');
     const currnetConditionsSection = document.getElementById("currentConditions");
     currnetConditionsSection.innerHTML = "";
-    const condHeader = document.createElement('div');
-    condHeader.id = "conditionsHeader";
-    condHeader.classList.add("display-6");
-    const headerText = location + " " + today;
-    condHeader.innerHTML = headerText;
-    currnetConditionsSection.appendChild(condHeader);
+    const cityText = document.createElement('div');
+    cityText.id = "conditionsHeader";
+    cityText.classList.add("display-6");
+    cityText.innerHTML = location;
+    currnetConditionsSection.appendChild(cityText);
+    const dateText = document.createElement('div');
+    dateText.id = "cConditionsDate";
+    dateText.classList.add("h3");
+    dateText.innerHTML = today;
+    currnetConditionsSection.appendChild(dateText);
+    
+    
     console.log(today);
 }
 
