@@ -49,11 +49,18 @@ function setupPage() {
     bodyRow.appendChild(currnetConditionsSection);
 
     // TODO: Setup the 5 day forcast
+    fiveDay(bodyContainer);
+}
 
+function fiveDay(parentDiv) {
+    const fiveDay = document.createElement('div');
+    fiveDay.id = "fiveDay";
+    fiveDay.classList.add("row");
+    fiveDay.innerHTML = "as;ddfhasjdf;laskljdf "
+    parentDiv.appendChild(fiveDay);
 }
 
 function setupCityButtons(parentDiv) {
-    //TODO: Get the list of cities from local storage
     parentDiv.innerHTML = "";
     const locationList = JSON.parse(localStorage.getItem("locations"));
     if (locationList) {
@@ -79,7 +86,6 @@ function setupCityButtons(parentDiv) {
         return cityBtn;
 
     }
-    //TODO: Create a button for each of the cities
     console.log("Setting up City List");
 }
 function cityButtonListener(e) {
@@ -237,9 +243,62 @@ function getWeatherData(lat, lon) {
     .then(function (data) {
         console.log(data)
         updateCurrentWeather(data.current);
+        update5Day(data.daily);
 
     })
 }
+function update5Day(forcast) {
+    const fiveDayDiv = document.getElementById("fiveDay");
+    fiveDayDiv.innerHTML = "";
+
+    // forcast comes in as an array of 8 elements
+    // we only want the first five
+    for(i=0;i<5;i++) {
+        const date = dateConverter(forcast[i].dt);
+        const temp = forcast[i].temp.day;
+        const wind = forcast[i].wind_speed;
+        const humidity = forcast[i].humidity;
+        const weatherIcon = forcast[i].weather[0].icon;
+        const iconPath = "https://openweathermap.org/img/wn/"+weatherIcon+".png";
+        
+
+
+        
+        const dispweatherIcon = document.createElement('div');
+        const dispWetherImage = document.createElement('img');
+        //dispWetherImage.setAttribute("src", iconPath);
+
+
+        const dayDiv = document.createElement('div');
+        dayDiv.id = "fiveDay"+i;
+        dayDiv.classList.add("col", "bg-secondary", "text-white");
+        const dateDiv = document.createElement('h2');
+        dateDiv.innerHTML = date;
+        dayDiv.appendChild(dateDiv);
+        const tempDiv = document.createElement("h5");
+        tempDiv.innerHTML = "Temperature: "+ temp;
+        dayDiv.appendChild(tempDiv);
+        const windDiv = document.createElement("h5");
+        windDiv.innerHTML = "Wind: " + wind;
+        dayDiv.appendChild(windDiv);
+        const humDiv = document.createElement("h5");
+        humDiv.innerHTML = "Humidity: " + humidity;
+        dayDiv.appendChild(humDiv);
+ 
+        //dayDiv.appendChild(dispweatherIcon);
+        fiveDayDiv.appendChild(dayDiv);
+
+    }
+}
+
+function dateConverter(UNIX_timestamp){
+    var a = new Date(UNIX_timestamp * 1000);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var month = months[a.getMonth()];
+    var date = a.getDate();
+    var time = month + ' ' + date;
+    return time;
+  }
 
 function storeLocation(location, lat, lon) {
     let locationList = JSON.parse(localStorage.getItem("locations"));
