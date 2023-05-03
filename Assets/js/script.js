@@ -32,20 +32,72 @@ function setupPage() {
     bodyRow.appendChild(searchSection);
 
     // TODO: Setup the City List
+    const cityListR = document.createElement('div');
+    cityListR.id = "cityListR";
+    cityListR.classList.add("row");
+    const cityList = document.createElement('div');
+    cityList.id = "cityList";
+    cityList.classList.add("col", "col-sm");
+    searchSection.appendChild(cityList);
+    setupCityButtons(cityList);
 
-    // TODO: Setup the current conditions
+    // TODO: Finish formatting this
     const currnetConditionsSection = document.createElement('div')
     currnetConditionsSection.id = "currentConditions";
     currnetConditionsSection.classList.add('container', "col");
-    currnetConditionsSection.innerHTML = "theialskdjjf as lsadj alsdk lskd jsfd jls js";
+    currnetConditionsSection.innerHTML = "";
     bodyRow.appendChild(currnetConditionsSection);
 
     // TODO: Setup the 5 day forcast
+
+}
+
+function setupCityButtons(parentDiv) {
+    //TODO: Get the list of cities from local storage
+    parentDiv.innerHTML = "";
+    const locationList = JSON.parse(localStorage.getItem("locations"));
+    if (locationList) {
+        for(i=0;i<locationList.length;i++) {
+            const cityBtnDiv = document.createElement('div')
+            cityBtnDiv.id = "cityBtnDiv"+i;
+            cityBtnDiv.classList.add("row");
+            parentDiv.appendChild(cityBtnDiv);
+            cityBtnEl = createCityButton(locationList[i], cityBtnDiv);
+            cityBtnEl.id = "cityBtn"+i;
+        }
+    }
+    function createCityButton(location, parent) {
+        
+        const cityBtn = document.createElement('button');
+        cityBtn.classList.add("btn", "btn-secondary");
+        cityBtn.innerHTML = location.locationName;
+        cityBtn.setAttribute("data-lon",location.longitude);
+        cityBtn.setAttribute("data-lat", location.lattitude);
+        cityBtn.setAttribute("data-citystate", location.locationName);
+        cityBtn.addEventListener("click",cityButtonListener);
+        parent.appendChild(cityBtn);
+        return cityBtn;
+
+    }
+    //TODO: Create a button for each of the cities
+    console.log("Setting up City List");
+}
+function cityButtonListener(e) {
+    e.preventDefault();
+    console.log(e.target);
+    const cityButton = e.target;
+    const lat = cityButton.getAttribute("data-lat");
+    const lon = cityButton.getAttribute("data-lon");
+    const cityState = cityButton.getAttribute("data-citystate");
+    currentConditionsHeader(cityState);
+    getWeatherData(lat, lon);
+
 }
 
 function updateCurrentWeather(currentWeatherObj) {
+
     const currnetConditionsSection = document.getElementById("currentConditions");
-    currnetConditionsSection.innerHTML = "";
+
     const clouds = {
         description: "Conditions",
         value: currentWeatherObj.weather[0].description,
@@ -97,10 +149,11 @@ function updateCurrentWeather(currentWeatherObj) {
         let nDiv = createWeatherDiv(weatherData[i]);
         currnetConditionsSection.appendChild(nDiv);
     }
+
     function createWeatherDiv(wObject) {
         const ldiv = document.createElement('div');
         ldiv.id = wObject.name;
-        ldiv.classList.add("display-6");
+        ldiv.classList.add("h3");
         ldiv.innerHTML = wObject.description+" : "+wObject.value+" "+wObject.units;
         return ldiv;
     }
@@ -109,14 +162,18 @@ function updateCurrentWeather(currentWeatherObj) {
     const dispWetherImage = document.createElement('img');
     dispWetherImage.setAttribute("src", iconPath);
     dispweatherIcon.appendChild(dispWetherImage);
-    currnetConditionsSection.appendChild(dispweatherIcon)
+    const cloudySection = document.getElementById("clouds");
+    cloudySection.appendChild(dispweatherIcon)
 
     
 }
 
+
+// Builds out the "Search for a City" portion of the UI.
 function searchArea(parentDiv) {
     const searchForm = document.createElement('form');
     searchForm.id = "searchForm";
+    searchForm.classList.add("form-group");
     const searchLabel = document.createElement('h3');
     searchLabel.id = "searchLabel";
     searchLabel.textContent = "Search for a City";
@@ -153,23 +210,70 @@ function searchAction(e) {
         .then(function (data) {
             console.log(data)
         
-
-            
             // I dont actually know if this can return more than 1 city
             // for now we're just going to pick the first one.
             let cityObj = data[0];
+            // TODO: Some better error messaging would be nice
+            if(!cityObj) {
+                alert("City not found, try again");
+                return;
+            }
             const lat = data[0].lat;
             const lon = data[0].lon;
-            let getWeatherUrl = "https://api.openweathermap.org/data/3.0/onecall?lat="+lat+"&lon="+lon+"&units=imperial"+"&appid="+key;
-            fetch(getWeatherUrl)
-            .then(function (response) {
-                return response.json();
-            })
-            .then(function (data) {
-                console.log(data)
-                updateCurrentWeather(data.current);
-
-            })
+            const cityState = data[0].name + ", " + data[0].state;
+            currentConditionsHeader(cityState);
+            storeLocation(cityState, lat, lon);
+            getWeatherData(lat, lon);
         })
     }
 }
+
+function getWeatherData(lat, lon) {
+    let getWeatherUrl = "https://api.openweathermap.org/data/3.0/onecall?lat="+lat+"&lon="+lon+"&units=imperial"+"&appid="+key;
+    fetch(getWeatherUrl)
+    .then(function (response) {
+        return response.json();
+    })
+    .then(function (data) {
+        console.log(data)
+        updateCurrentWeather(data.current);
+
+    })
+}
+
+function storeLocation(location, lat, lon) {
+    let locationList = JSON.parse(localStorage.getItem("locations"));
+    const lObject = {
+        locationName: location,
+        lattitude: lat,
+        longitude: lon
+    };
+    if(locationList) {
+        if(locationList.length>10) {
+            locationList.pop();
+        }
+        let nLocationList = [lObject];
+        locationList = nLocationList.concat(locationList); 
+    } else {
+        locationList = [lObject];
+    }
+    localStorage.setItem("locations", JSON.stringify(locationList));
+    const cityDiv = document.getElementById("cityList");
+    setupCityButtons(cityDiv);
+}
+
+function currentConditionsHeader(location) {
+    const today = dayjs().format('MMMM D YYYY [at] h:m a');
+    const currnetConditionsSection = document.getElementById("currentConditions");
+    currnetConditionsSection.innerHTML = "";
+    const condHeader = document.createElement('div');
+    condHeader.id = "conditionsHeader";
+    condHeader.classList.add("display-6");
+    const headerText = location + " " + today;
+    condHeader.innerHTML = headerText;
+    currnetConditionsSection.appendChild(condHeader);
+    console.log(today);
+}
+
+
+
