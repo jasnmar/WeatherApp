@@ -31,21 +31,89 @@ function setupPage() {
     searchArea(searchDivC);
     bodyRow.appendChild(searchSection);
 
-    // TODO: Setup the City List
+    // Set up the City Buttons
+    const cityListR = document.createElement('div');
+    cityListR.id = "cityListR";
+    cityListR.classList.add("row");
+    const cityList = document.createElement('div');
+    cityList.id = "cityList";
+    cityList.classList.add("col", "col-sm");
+    searchSection.appendChild(cityList);
+    setupCityButtons(cityList);
 
-    // TODO: Setup the current conditions
+    // Current Conditions
     const currnetConditionsSection = document.createElement('div')
     currnetConditionsSection.id = "currentConditions";
     currnetConditionsSection.classList.add('container', "col");
-    currnetConditionsSection.innerHTML = "theialskdjjf as lsadj alsdk lskd jsfd jls js";
+    currnetConditionsSection.innerHTML = "";
     bodyRow.appendChild(currnetConditionsSection);
 
-    // TODO: Setup the 5 day forcast
+    // TODO: Format this better
+    fiveDay(bodyContainer);
 }
 
+function fiveDay(parentDiv) {
+    const fiveDay = document.createElement('div');
+    fiveDay.id = "fiveDay";
+    fiveDay.classList.add("row", "my-3");
+    fiveDay.innerHTML = ""
+    parentDiv.appendChild(fiveDay);
+}
+
+function setupCityButtons(parentDiv) {
+    parentDiv.innerHTML = "";
+    const locationList = JSON.parse(localStorage.getItem("locations"));
+    if (locationList) {
+        for(i=0;i<locationList.length;i++) {
+            const cityBtnDiv = document.createElement('div')
+            cityBtnDiv.id = "cityBtnDiv"+i;
+            cityBtnDiv.classList.add("row", "mx-0", "my-1");
+            parentDiv.appendChild(cityBtnDiv);
+            cityBtnEl = createCityButton(locationList[i], cityBtnDiv);
+            cityBtnEl.id = "cityBtn"+i;
+        }
+    }
+    function createCityButton(location, parent) {
+        
+        const cityBtn = document.createElement('button');
+        cityBtn.classList.add("btn", "btn-secondary", "btn-sm");
+        cityBtn.innerHTML = location.locationName;
+        cityBtn.setAttribute("data-lon",location.longitude);
+        cityBtn.setAttribute("data-lat", location.lattitude);
+        cityBtn.setAttribute("data-citystate", location.locationName);
+        cityBtn.addEventListener("click",cityButtonListener);
+        parent.appendChild(cityBtn);
+        return cityBtn;
+
+    }
+    console.log("Setting up City List");
+}
+
+// Event listender that works on the City buttons under the search
+// (saved searches)
+function cityButtonListener(e) {
+    e.preventDefault();
+    console.log(e.target);
+    const cityButton = e.target;
+    const lat = cityButton.getAttribute("data-lat");
+    const lon = cityButton.getAttribute("data-lon");
+    const cityState = cityButton.getAttribute("data-citystate");
+    currentConditionsHeader(cityState);
+    getWeatherData(lat, lon);
+
+}
+// Updates the current weather portion of the page, based on 
+// a current weather object being passed in.
 function updateCurrentWeather(currentWeatherObj) {
+    // Current weather object is expected to be an object
+    // That represents the current weather section as described
+    // In https://openweathermap.org/api/one-call-3
+
     const currnetConditionsSection = document.getElementById("currentConditions");
-    currnetConditionsSection.innerHTML = "";
+
+    // I used this to deconstruct the weather object and add 
+    // a description, a name, and some units to the raw values
+    // that are in the object that get passed in.
     const clouds = {
         description: "Conditions",
         value: currentWeatherObj.weather[0].description,
@@ -88,35 +156,44 @@ function updateCurrentWeather(currentWeatherObj) {
         name: "windSpeed",
         units: "MPH"
     }
-
+    // Gets the icon from the weather object, looks it up and inserts it
+    // as an image.
     const weatherIcon = currentWeatherObj.weather[0].icon;
     const iconPath = "https://openweathermap.org/img/wn/"+weatherIcon+".png";
+    const dispweatherIcon = document.createElement('div');
+    const dispWeatherImage = document.createElement('img');
+    dispWeatherImage.setAttribute("src", iconPath);
+    dispweatherIcon.appendChild(dispWeatherImage);
+    currnetConditionsSection.appendChild(dispweatherIcon);
+
+
     let weatherData = [clouds, dewPoint, feelsLike, humidity, barometricPressure, temp, windSpeed];
 
     for(i=0;i<weatherData.length;i++){
         let nDiv = createWeatherDiv(weatherData[i]);
         currnetConditionsSection.appendChild(nDiv);
     }
+
     function createWeatherDiv(wObject) {
         const ldiv = document.createElement('div');
         ldiv.id = wObject.name;
-        ldiv.classList.add("display-6");
+        ldiv.classList.add("h4");
         ldiv.innerHTML = wObject.description+" : "+wObject.value+" "+wObject.units;
         return ldiv;
     }
 
-    const dispweatherIcon = document.createElement('div');
-    const dispWetherImage = document.createElement('img');
-    dispWetherImage.setAttribute("src", iconPath);
-    dispweatherIcon.appendChild(dispWetherImage);
-    currnetConditionsSection.appendChild(dispweatherIcon)
+
+    
 
     
 }
 
+
+// Builds out the "Search for a City" portion of the UI.
 function searchArea(parentDiv) {
     const searchForm = document.createElement('form');
     searchForm.id = "searchForm";
+    searchForm.classList.add("form-group");
     const searchLabel = document.createElement('h3');
     searchLabel.id = "searchLabel";
     searchLabel.textContent = "Search for a City";
@@ -129,12 +206,15 @@ function searchArea(parentDiv) {
     const searchButton = document.createElement('input');
     searchButton.setAttribute("type", "submit");
     searchButton.setAttribute("value", "Submit");
+    searchButton.classList.add("btn-primary");
     searchButton.addEventListener("click",searchAction)
     searchButton.id = "searchSubmitButton";
     searchForm.appendChild(searchButton);
     parentDiv.appendChild(searchForm);
 }
 
+// This runs when the submit button is clicked (or when someone
+// presses enter on the input button)
 function searchAction(e) {
     e.preventDefault();
     console.log("Searching...");
@@ -153,23 +233,146 @@ function searchAction(e) {
         .then(function (data) {
             console.log(data)
         
-
-            
             // I dont actually know if this can return more than 1 city
             // for now we're just going to pick the first one.
             let cityObj = data[0];
+            // TODO: Some better error messaging would be nice
+            if(!cityObj) {
+                alert("City not found, try again");
+                return;
+            }
             const lat = data[0].lat;
             const lon = data[0].lon;
-            let getWeatherUrl = "https://api.openweathermap.org/data/3.0/onecall?lat="+lat+"&lon="+lon+"&units=imperial"+"&appid="+key;
-            fetch(getWeatherUrl)
-            .then(function (response) {
-                return response.json();
-            })
-            .then(function (data) {
-                console.log(data)
-                updateCurrentWeather(data.current);
-
-            })
+            const cityState = data[0].name + ", " + data[0].state;
+            currentConditionsHeader(cityState);
+            storeLocation(cityState, lat, lon);
+            getWeatherData(lat, lon);
         })
     }
 }
+
+
+// Given a lat and long this retrieves the weather data, then updates
+// The current weather, as well as the 5 day forcast.
+function getWeatherData(lat, lon) {
+    let getWeatherUrl = "https://api.openweathermap.org/data/3.0/onecall?lat="+lat+"&lon="+lon+"&units=imperial"+"&appid="+key;
+    fetch(getWeatherUrl)
+    .then(function (response) {
+        return response.json();
+    })
+    .then(function (data) {
+        console.log(data)
+        updateCurrentWeather(data.current);
+        update5Day(data.daily);
+
+    })
+}
+
+// Updates the 5 day forcast, based on an 8 day forcast being passed in
+function update5Day(forcast) {
+    const fiveDayDiv = document.getElementById("fiveDay");
+    fiveDayDiv.innerHTML = "";
+
+    // forcast comes in as an array of 8 elements
+    // we only want the first five
+    for(i=0;i<5;i++) {
+
+        // Set up the div for a single day
+        const dayDiv = document.createElement('div');
+        dayDiv.id = "fiveDay"+i;
+        dayDiv.classList.add("col", "bg-secondary", "text-white", "mx-1");
+
+        // Add the date
+        const date = dateConverter(forcast[i].dt);
+        const dateDiv = document.createElement('h2');
+        dateDiv.innerHTML = date;
+        dayDiv.appendChild(dateDiv);
+
+        const temp = forcast[i].temp.day;
+        const wind = forcast[i].wind_speed;
+        const humidity = forcast[i].humidity;
+        const weatherIcon = forcast[i].weather[0].icon;
+        const iconPath = "https://openweathermap.org/img/wn/"+weatherIcon+".png";
+
+
+        
+        const dispWeatherIcon = document.createElement('div');
+        dispWeatherIcon.id = "5dWIcon";
+        const dispWeatherImage = document.createElement('img');
+        dispWeatherIcon.appendChild(dispWeatherImage);
+        console.log(dispWeatherImage);
+        dispWeatherImage.setAttribute("src", iconPath);
+        dayDiv.appendChild(dispWeatherIcon);
+
+
+        
+
+
+
+        const tempDiv = document.createElement("h5");
+        tempDiv.innerHTML = "Temperature: "+ temp;
+        dayDiv.appendChild(tempDiv);
+        const windDiv = document.createElement("h5");
+        windDiv.innerHTML = "Wind: " + wind;
+        dayDiv.appendChild(windDiv);
+        const humDiv = document.createElement("h5");
+        humDiv.innerHTML = "Humidity: " + humidity;
+        dayDiv.appendChild(humDiv);
+ 
+        
+        fiveDayDiv.appendChild(dayDiv);
+
+    }
+}
+
+function dateConverter(UNIX_timestamp){
+    var a = new Date(UNIX_timestamp * 1000);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var month = months[a.getMonth()];
+    var date = a.getDate();
+    var time = month + ' ' + date;
+    return time;
+  }
+
+function storeLocation(location, lat, lon) {
+    let locationList = JSON.parse(localStorage.getItem("locations"));
+    const lObject = {
+        locationName: location,
+        lattitude: lat,
+        longitude: lon
+    };
+    if(locationList) {
+        if(locationList.length>10) {
+            locationList.pop();
+        }
+        let nLocationList = [lObject];
+        locationList = nLocationList.concat(locationList); 
+    } else {
+        locationList = [lObject];
+    }
+    localStorage.setItem("locations", JSON.stringify(locationList));
+    const cityDiv = document.getElementById("cityList");
+    setupCityButtons(cityDiv);
+}
+
+function currentConditionsHeader(location) {
+    const today = dayjs().format('MMMM D YYYY [at] h:m a');
+    const currnetConditionsSection = document.getElementById("currentConditions");
+    currnetConditionsSection.innerHTML = "";
+    const cityText = document.createElement('div');
+    cityText.id = "conditionsHeader";
+    cityText.classList.add("display-6");
+    cityText.innerHTML = location;
+    currnetConditionsSection.appendChild(cityText);
+    const dateText = document.createElement('div');
+    dateText.id = "cConditionsDate";
+    dateText.classList.add("h3");
+    dateText.innerHTML = today;
+    currnetConditionsSection.appendChild(dateText);
+    
+    
+    console.log(today);
+}
+
+
+
