@@ -5,6 +5,19 @@ $( document ).ready(function() {
     setupPage();
 });
 
+
+// Just for the license key for OpenWeather.
+// Running a local express server to get the key so it isn't stored in code anywhere.
+let key = ""
+const localURL = "http://localhost:3000"
+fetch(localURL)
+.then(function (response) {
+    return response.json();
+})
+.then(function (data) {
+    key = data.key;
+})
+
 function setupPage() {
     // Get the "main" section of the body
     const mainArea = document.getElementById("main");
@@ -60,7 +73,11 @@ function fiveDay(parentDiv) {
     parentDiv.appendChild(fiveDay);
 }
 
+// Sets up the City buttons based on the information in local storage
+// Also gets run when a new city is added. Just destroy and create the 
+// entire list.
 function setupCityButtons(parentDiv) {
+    console.info("Setting up City List");
     parentDiv.innerHTML = "";
     const locationList = JSON.parse(localStorage.getItem("locations"));
     if (locationList) {
@@ -73,8 +90,12 @@ function setupCityButtons(parentDiv) {
             cityBtnEl.id = "cityBtn"+i;
         }
     }
+    // This creates the buttons themselves, based on the array stored in 
+    // local storage above. 
+    // I put the lon and lat in the buttons themselves to save a call to the
+    // geo API for cities that we've already looked up. The listener just 
+    // gets the lat and lon from the button itself. 
     function createCityButton(location, parent) {
-        
         const cityBtn = document.createElement('button');
         cityBtn.classList.add("btn", "btn-secondary", "btn-sm");
         cityBtn.innerHTML = location.locationName;
@@ -86,11 +107,12 @@ function setupCityButtons(parentDiv) {
         return cityBtn;
 
     }
-    console.log("Setting up City List");
+    
 }
 
 // Event listender that works on the City buttons under the search
-// (saved searches)
+// (saved searches). This calls the get weather data function directly,
+// without going throught the geo lookup.
 function cityButtonListener(e) {
     e.preventDefault();
     console.log(e.target);
@@ -102,6 +124,7 @@ function cityButtonListener(e) {
     getWeatherData(lat, lon);
 
 }
+
 // Updates the current weather portion of the page, based on 
 // a current weather object being passed in.
 function updateCurrentWeather(currentWeatherObj) {
@@ -157,7 +180,8 @@ function updateCurrentWeather(currentWeatherObj) {
         units: "MPH"
     }
     // Gets the icon from the weather object, looks it up and inserts it
-    // as an image.
+    // as an image. I do this in a couple places and it should probably be generalized
+    // TODO: Generalize this code and call it from the weather and 5 day portions
     const weatherIcon = currentWeatherObj.weather[0].icon;
     const iconPath = "https://openweathermap.org/img/wn/"+weatherIcon+".png";
     const dispweatherIcon = document.createElement('div');
@@ -166,14 +190,16 @@ function updateCurrentWeather(currentWeatherObj) {
     dispweatherIcon.appendChild(dispWeatherImage);
     currnetConditionsSection.appendChild(dispweatherIcon);
 
-
+    // Combine all of the weather info into an array
     let weatherData = [clouds, dewPoint, feelsLike, humidity, barometricPressure, temp, windSpeed];
 
+    // Iterate throught the weather array.
     for(i=0;i<weatherData.length;i++){
         let nDiv = createWeatherDiv(weatherData[i]);
         currnetConditionsSection.appendChild(nDiv);
     }
 
+    // Create divs for each of the items in the weather array
     function createWeatherDiv(wObject) {
         const ldiv = document.createElement('div');
         ldiv.id = wObject.name;
@@ -181,11 +207,6 @@ function updateCurrentWeather(currentWeatherObj) {
         ldiv.innerHTML = wObject.description+" : "+wObject.value+" "+wObject.units;
         return ldiv;
     }
-
-
-    
-
-    
 }
 
 
@@ -221,6 +242,9 @@ function searchAction(e) {
     console.log(e.target);
     let inputBox = document.getElementById("searchInputBox");
     let city = inputBox.value;
+    // TODO: This could be made something better than an alert
+    // This was quick to get to MVP. A real dialog would provide
+    // a better UX, but wasn't neccessary right now
     if(!city) {
         alert("Sorry, you must specify a city");
     } else {
@@ -325,6 +349,8 @@ function update5Day(forcast) {
     }
 }
 
+// This just converts UXIX dates to human readable dates for the 5 day forcast.
+// right now all that is needed is the "day" part of the date, the time is just dropped
 function dateConverter(UNIX_timestamp){
     var a = new Date(UNIX_timestamp * 1000);
     var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -334,6 +360,10 @@ function dateConverter(UNIX_timestamp){
     return time;
   }
 
+// This adds to localstorage when a new city is searched for
+// The new item is added to the top of the list every time
+// The list is constrained to 10 items.
+// TODO: I should check for duplicate items before adding a new one to the list.
 function storeLocation(location, lat, lon) {
     let locationList = JSON.parse(localStorage.getItem("locations"));
     const lObject = {
@@ -355,6 +385,8 @@ function storeLocation(location, lat, lon) {
     setupCityButtons(cityDiv);
 }
 
+// This sets up the "header" part of the current condictions section with the 
+// City and Date 
 function currentConditionsHeader(location) {
     const today = dayjs().format('MMMM D YYYY [at] h:m a');
     const currnetConditionsSection = document.getElementById("currentConditions");
@@ -373,6 +405,4 @@ function currentConditionsHeader(location) {
     
     console.log(today);
 }
-
-
 
